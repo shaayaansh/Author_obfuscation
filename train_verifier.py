@@ -6,6 +6,7 @@ from torch.optim import AdamW
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 import torch.nn as nn
+import torch
 
 def main(args):
     data_name = args.data_name
@@ -24,7 +25,8 @@ def main(args):
         text_col,
         model_name
     )
-
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # initialize model
     model = Verifier(model_name)
     learning_rate = 1e-5
@@ -33,6 +35,7 @@ def main(args):
     optimizer = AdamW(model.parameters(), lr=learning_rate)
     loss_fn = nn.BCEWithLogitsLoss()
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    model.to(device)
     model.train()
 
     
@@ -40,8 +43,9 @@ def main(args):
         epoch_loss = 0
         for _, batch in enumerate(tqdm(dataloader)):
             tokenized, labels = batch
-            input_ids = tokenized["input_ids"].squeeze(1)
-            attention_mask = tokenized["attention_mask"].squeeze(1)
+            labels = labels.to(device)
+            input_ids = tokenized["input_ids"].squeeze(1).to(device)
+            attention_mask = tokenized["attention_mask"].squeeze(1).to(device)
             #labels = labels.squeeze
             y_pred = model(input_ids, attention_mask)
             
